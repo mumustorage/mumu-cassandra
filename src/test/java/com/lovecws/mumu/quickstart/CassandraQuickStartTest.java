@@ -2,6 +2,7 @@ package com.lovecws.mumu.quickstart;
 
 import com.lovecws.mumu.cassandra.quickstart.CassandraQuickStart;
 import org.junit.Test;
+import sun.nio.ch.FileChannelImpl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.OpenOption;
 
 /**
  * @author babymm
@@ -55,15 +57,14 @@ public class CassandraQuickStartTest {
             try {
                 tempFile.createNewFile();
                 String content = "Cassandra 的数据模型是基于列族（Column Family）的四维或五维模型。它借鉴了 Amazon 的 Dynamo 和 Google's BigTable 的数据结构和功能特点，采用 Memtable 和 SSTable 的方式进行存储。在 Cassandra 写入数据之前，需要先记录日志 ( CommitLog )，然后数据开始写入到 Column Family 对应的 Memtable 中，Memtable 是一种按照 key 排序数据的内存结构，在满足一定条件时，再把 Memtable 的数据批量的刷新到磁盘上，存储为 SSTable 。";
-                if (tempFile.canWrite()) {
-                    //将数据写入到文件中
-                    fileInputStream = new FileInputStream(tempFile);
-                    channel = fileInputStream.getChannel();
-                    ByteBuffer byteBuffer = ByteBuffer.allocate(content.getBytes().length);
-                    byteBuffer.put(content.getBytes());
-                    byteBuffer.flip();
-                    channel.write(byteBuffer);
-                }
+                //将数据写入到文件中
+                fileInputStream = new FileInputStream(tempFile);
+                //channel = fileInputStream.getChannel(); //使用此方式打开的channel是只读的
+                channel = FileChannelImpl.open(fileInputStream.getFD(), tempFile.getPath(), false, true, fileInputStream);//获取可写的通道
+                ByteBuffer byteBuffer = ByteBuffer.allocate(content.getBytes().length);
+                byteBuffer.put(content.getBytes());
+                byteBuffer.flip();
+                channel.write(byteBuffer);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
